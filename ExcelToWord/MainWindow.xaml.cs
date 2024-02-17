@@ -13,6 +13,7 @@ using System.Data;
 using System.Configuration;
 using Microsoft.Win32;
 using Excel = Microsoft.Office.Interop.Excel;
+using Xceed.Words.NET;
 using ExcelToWord.Classes;
 
 namespace ExcelToWord
@@ -89,7 +90,7 @@ namespace ExcelToWord
                     command.CommandText = query_account;
                     if (command.CommandText.Length > 0)
                         result += command.ExecuteNonQuery();
-                    MessageBox.Show($"Добавлено {result} записей в БД");
+                    MessageBox.Show($"Добавлено {result} записей в БД", "Завершение операции", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception error)
@@ -105,7 +106,151 @@ namespace ExcelToWord
 
         private void WordButton_Click(object sender, RoutedEventArgs e)
         {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "Word Documents (*.docx)|*.docx";
+            if (dialog.ShowDialog() == false || dialog.FileName.Length == 0)
+                return;
+            try
+            {
+                using (DocX file = DocX.Create(dialog.FileName))
+                {
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        connection.Open();
 
+                        //Мучины и женщины
+                        Gender.SyncToDB(connectionString);
+                        int male_id = -1, female_id = -1;
+                        Gender g = Gender.Genders.Find(_ => _.Name == "м");
+                        if (g != null)
+                            male_id = g.ID;
+                        g = Gender.Genders.Find(_ => _.Name == "ж");
+                        if (g != null)
+                            female_id = g.ID;
+
+                        SqlCommand command = new SqlCommand($"SELECT COUNT(*) FROM Accounts WHERE Gender = {male_id};", connection);
+                        SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int male_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        command.CommandText = $"SELECT COUNT(*) FROM Accounts WHERE Gender = {female_id};";
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        int female_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        var p1 = file.InsertParagraph();
+                        p1.Append($"Мужчин: {male_amount}. Женщин: {female_amount}.");
+
+                        //Мужчины в возрасте 30-40 лет
+                        command.CommandText = $"SELECT COUNT(*) FROM Accounts WHERE Gender = {male_id} AND Age BETWEEN 30 AND 40;";
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        male_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        var p2 = file.InsertParagraph();
+                        p2.Append($"Мужчин в возрасте 30-40 лет: {male_amount}");
+
+                        //Стандартные и премиум аккаунты
+                        Status.SyncToDB(connectionString);
+                        int standart_id = -1, premium_id = 0;
+                        Status s = Status.Statuses.Find(_ => _.Name == "стандарт");
+                        if (s != null)
+                            standart_id = s.ID;
+                        s = Status.Statuses.Find(_ => _.Name == "премиум");
+                        if (s != null)
+                            premium_id = s.ID;
+
+                        command.CommandText = $"SELECT COUNT(*) FROM Accounts WHERE Status = {standart_id};";
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        int standart_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        command.CommandText = $"SELECT COUNT(*) FROM Accounts WHERE Status = {premium_id};";
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        int premium_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        var p3 = file.InsertParagraph();
+                        p3.Append($"Стандартных аккаунтов: {standart_amount}. Премиум: {premium_amount}.");
+
+                        //Женщины с премиум аккаунтами от 30 лет
+                        command.CommandText = $"SELECT COUNT(*) FROM Accounts WHERE Gender = {female_id} AND Age >= 30;";
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        female_amount = reader.GetInt32(0);
+                        reader.Close();
+
+                        var p4 = file.InsertParagraph();
+                        p4.Append($"Женщин с премиум аккаунтом от 30 лет: {female_amount}");
+
+                        //Женщины с большим окладом
+                        string women_list = "";
+                        command.CommandText = $"SELECT Firstname, Secondname FROM Accounts " +
+                            $"WHERE Gender = {female_id} AND Age BETWEEN 23 AND 35 ORDER BY Salary DESC;";
+                        var p5 = file.InsertParagraph();
+                        p5.Append($"Женщины с лучшим окладом 23-35 лет:");
+                        var list5 = file.AddList();
+                        reader = command.ExecuteReader();
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                file.AddListItem(list5, $"{reader.GetValue(0)} {reader.GetValue(1)}");
+                            }
+                        }
+                        reader.Close();
+                        file.InsertList(list5);
+                        p5.LineSpacingBefore = 10;
+
+                        //3 мужчины и 3 женщины с мин зп
+                        command.CommandText = $"SELECT TOP 3 Firstname, Secondname FROM Accounts " +
+                            $"WHERE Gender = {female_id} ORDER BY Salary;";
+                        reader = command.ExecuteReader();
+                        var p6 = file.InsertParagraph();
+                        p6.Append($"Женщины с худшим окладом:");
+                        var list6 = file.AddList();
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                file.AddListItem(list6, $"{reader.GetValue(0)} {reader.GetValue(1)}");
+                            }
+                        }
+                        reader.Close();
+                        p6.LineSpacingBefore = 10;
+                        file.InsertList(list6);
+
+                        command.CommandText = $"SELECT TOP 3 Firstname, Secondname FROM Accounts " +
+                            $"WHERE Gender = {male_id} ORDER BY Salary;";
+                        reader = command.ExecuteReader();
+                        var p7 = file.InsertParagraph();
+                        p7.Append($"Мужчины с худшим окладом:");
+                        var list7 = file.AddList();
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                file.AddListItem(list7, $"{reader.GetValue(0)} {reader.GetValue(1)}");
+                            }
+                        }
+                        p7.LineSpacingBefore = 10;
+                        reader.Close();
+                        file.InsertList(list7);
+
+                        file.Save();
+                        MessageBox.Show("Статистика сохранена", "Завершение операции", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message, "Возникла ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)

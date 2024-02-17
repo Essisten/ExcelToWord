@@ -84,3 +84,5 @@ C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\obj\Debug\ExcelToWord.csp
 C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\obj\Debug\ExcelToWord.csproj.CopyComplete
 C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\obj\Debug\ExcelToWord.exe
 C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\obj\Debug\ExcelToWord.pdb
+C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\bin\Debug\Xceed.Document.NET.dll
+C:\Users\Essisten\Source\Repos\ExcelToWord\ExcelToWord\bin\Debug\Xceed.Words.NET.dll
