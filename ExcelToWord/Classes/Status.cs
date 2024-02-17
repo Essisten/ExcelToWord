@@ -29,7 +29,7 @@ namespace ExcelToWord.Classes
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                SqlCommand command = new SqlCommand("SELECT * FROM Status", connection);
+                SqlCommand command = new SqlCommand("SELECT * FROM Account_status", connection);
                 SqlDataReader reader = command.ExecuteReader();
                 if (reader.HasRows)
                 {
@@ -37,15 +37,6 @@ namespace ExcelToWord.Classes
                     {
                         Statuses.Add(new Status(reader.GetValue(1).ToString(), (int)reader.GetValue(0)));
                     }
-                }
-                string query = "INSERT INTO Status (ID, Status) VALUES";
-                for (int i = 0; i < Statuses.Count; i++)
-                {
-                    query += $" ({Statuses[i].ID}, {Statuses[i].Name})";
-                    if (i + 1 == Statuses.Count)
-                        query += ";";
-                    else
-                        query += ",";
                 }
             }
         }

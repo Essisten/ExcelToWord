@@ -12,8 +12,8 @@
             <RowDefinition/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <Button x:Name="ExcelButton" Margin="10" Content="Загрузить xlsx" Click="ExcelButton_Click"/>
-        <Button x:Name="WordButton" Grid.Row="1" Margin="10" Content="Сохранить docx" Click="WordButton_Click"/>
-        <Button x:Name="ClearButton" Grid.Row="2" Margin="10" Content="Очистить БД" Click="ClearButton_Click"/>
+        <Button x:Name="ExcelButton" Margin="10, 5, 10, 5" Content="Загрузить xlsx" Click="ExcelButton_Click"/>
+        <Button x:Name="WordButton" Grid.Row="1" Margin="10, 5, 10, 5" Content="Сохранить docx" Click="WordButton_Click"/>
+        <Button x:Name="ClearButton" Grid.Row="2" Margin="10, 5, 10, 5" Content="Очистить БД" Click="ClearButton_Click"/>
     </Grid>
 </Window>

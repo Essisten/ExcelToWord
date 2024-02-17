@@ -29,7 +29,7 @@ namespace ExcelToWord.Classes
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                SqlCommand command = new SqlCommand("SELECT * FROM Gender", connection);
+                SqlCommand command = new SqlCommand("SELECT * FROM Account_gender", connection);
                 SqlDataReader reader = command.ExecuteReader();
                 if (reader.HasRows)
                 {
@@ -38,7 +38,7 @@ namespace ExcelToWord.Classes
                         Genders.Add(new Gender(reader.GetValue(1).ToString(), (int)reader.GetValue(0)));
                     }
                 }
-                string query = "INSERT INTO Gender (ID, Gender) VALUES";
+                string query = "INSERT INTO Account_gender (ID, Gender) VALUES";
                 for (int i = 0; i < Genders.Count; i++)
                 {
                     query += $" ({Genders[i].ID}, {Genders[i].Name})";

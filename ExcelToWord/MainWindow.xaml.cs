@@ -23,7 +23,6 @@ namespace ExcelToWord
     public partial class MainWindow : Window
     {
         string connectionString;
-        SqlDataAdapter adapter;
         public MainWindow()
         {
             InitializeComponent();
@@ -40,37 +39,58 @@ namespace ExcelToWord
             Excel.Workbook wb = excel.Workbooks.Open(dialog.FileName);
             try
             {
-                Excel.Worksheet sheet = (Excel.Worksheet)wb.Worksheets.get_Item(1);
-                Excel.Range range = sheet.UsedRange;
+                Excel.Worksheet sheet = wb.Worksheets[1];
                 Gender.SyncToDB(connectionString);
                 Status.SyncToDB(connectionString);
-                for (int i = 0; i < range.Rows.Count; i++)
+                Account.Accounts.Clear();
+                string query_status = "", query_gender = "";
+                for (int i = 2; i > 0; i++)
                 {
-                    if (Gender.Genders.Find(g => g.Name == range.Cells[i, 2]) == null)
-                        Gender.Genders.Add(new Gender(range.Cells[i, 2]));
-                    if (Status.Statuses.Find(s => s.Name == range.Cells[i, 4]) == null)
-                        Status.Statuses.Add(new Status(range.Cells[i, 4]));
-                }
-                for (int i = 0; i < range.Rows.Count; i++)
-                {
-                    Account.Accounts.Add(new Account(range.Cells[i, 0], range.Cells[i, 1], range.Cells[i, 2],
-                                                    range.Cells[i, 3], range.Cells[i, 4], range.Cells[i, 5]));
+                    if (sheet.Cells[i, 1].Value == null)
+                        break;
+                    if (Gender.Genders.Find(g => g.Name == sheet.Cells[i, 3].Value.ToString()) == null)
+                    {
+                        Gender g = new Gender(sheet.Cells[i, 3].Value.ToString());
+                        Gender.Genders.Add(g);
+                        query_gender += $"INSERT INTO Account_gender (ID, Gender) VALUES ({g.ID}, '{g.Name}');";
+                    }
+                    if (Status.Statuses.Find(s => s.Name == sheet.Cells[i, 5].Value.ToString()) == null)
+                    {
+                        Status s = new Status(sheet.Cells[i, 5].Value.ToString());
+                        Status.Statuses.Add(s);
+                        query_status += $"INSERT INTO Account_status (ID, Status) VALUES ({s.ID}, '{s.Name}');";
+                    }
                 }
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    string query = "INSERT INTO Accounts (ID, Firstname, Secondname, Gender, Age, Status, Salary) VALUES";
+                    SqlCommand command = new SqlCommand(query_gender + query_status, connection);
+                    int result = 0;
+                    if (command.CommandText.Length > 0)
+                        result = command.ExecuteNonQuery();
+                    for (int i = 2; i > 0; i++)
+                    {
+                        if (sheet.Cells[i, 1].Value == null)
+                            break;
+                        Account.Accounts.Add(new Account(sheet.Cells[i, 1].Value.ToString(), sheet.Cells[i, 2].Value.ToString(),
+                            sheet.Cells[i, 3].Value.ToString(), Convert.ToInt32(sheet.Cells[i, 4].Value), sheet.Cells[i, 5].Value.ToString(),
+                            (float)sheet.Cells[i, 6].Value));
+                    }
+                    string query_account = "INSERT INTO Accounts (ID, Firstname, Secondname, Gender, Age, Status, Salary) VALUES";
                     for (int i = 0; i < Account.Accounts.Count; i++)
                     {
                         Account a = Account.Accounts[i];
-                        query += $" ({a.ID}, {a.Firstname}, {a.Secondname}, {a.Gender}, {a.Age}, {a.Status}, {a.Salary})";
+                        query_account += $" ({a.ID}, '{a.Firstname}', '{a.Secondname}', {a.Gender}, {a.Age}, {a.Status}, {a.Salary})";
                         if (i + 1 == Account.Accounts.Count)
-                            query += ";";
+                            query_account += ";";
                         else
-                            query += ",";
+                            query_account += ",";
                     }
+                    command.CommandText = query_account;
+                    if (command.CommandText.Length > 0)
+                        result += command.ExecuteNonQuery();
+                    MessageBox.Show($"Добавлено {result} записей в БД");
                 }
-                MessageBox.Show("Успешно выгружено");
             }
             catch (Exception error)
             {
@@ -90,7 +110,20 @@ namespace ExcelToWord
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
-
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    SqlCommand command = new SqlCommand("DELETE FROM Accounts;DELETE FROM Account_gender;DELETE FROM Account_status;", connection);
+                    int result = command.ExecuteNonQuery();
+                    MessageBox.Show($"Удалено {result} записей в БД");
+                }
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message, "Возникла ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
